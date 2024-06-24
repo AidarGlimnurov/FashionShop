@@ -1,0 +1,26 @@
+﻿<!-- HoverMenu.razor -->
+<div @onmouseover="ShowMenu" @onmouseout="HideMenu">
+    <span>Товары</span>
+    @if (isMenuVisible)
+    {
+        <div class="dropdown-menu">
+            <p>Женское</p>
+            <p>Мужское</p>
+            <p>Акции</p>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isMenuVisible = false;
+
+    private void ShowMenu()
+    {
+        isMenuVisible = true;
+    }
+
+    private void HideMenu()
+    {
+        isMenuVisible = false;
+    }
+}

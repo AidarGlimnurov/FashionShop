@@ -1,0 +1,88 @@
+﻿@page "/signin"
+@using FashionShop.Shared.Dtos;
+@using System.Net.Http.Headers;
+@using FashionShop.Shared.SupportData;
+@inject HttpClient client
+@inject NavigationManager navigation
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+
+<div style="text-align: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+    <h3>Войти</h3>
+    <div class="form-group" style="text-align: left; width: 300px">
+        <label for="content">Email:</label>
+        <input id="content" class="form-control" @bind="email" />
+        <br>
+        <label for="content">Пароль:</label>
+        <input id="content" type="password" class="form-control" @bind="password" />
+        <br>
+        <div style="width: 100%; text-align:center">
+            <button class="btn btn-primary" @onclick="Authorize">Войти</button>
+            <label>@msg</label>
+            <br>
+            <label>Нет аккаунта?</label>
+            <br>
+            <a href="signup">Регистрация</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    AuthView authView = new AuthView();
+    AuthInfo authInfo = new AuthInfo();
+    string email;
+    string password;
+    string msg = "";
+    private bool isAuthenticated = false;
+    private async Task Authorize()
+    {
+        try
+        {
+            // Код для отправки логина и пароля на сервер для получения токена
+            var response = await AuthenticateAsync(email, password);
+            if (response.IsSuccessStatusCode)
+            {
+                var tokenResponse = await response.Content.ReadFromJsonAsync<TokenResponse>();
+
+                // Можно сохранить токен в безопасном месте, например, в Cookie или localStorage.
+                KeyStorage.Key = tokenResponse.Access_token;
+                authInfo.Key = tokenResponse.Access_token;
+
+                await localStorage.SetItemAsync(AuthInfo.CookieName, authInfo);
+                isAuthenticated = true;
+                email = string.Empty;
+                password = string.Empty;
+                msg = "Вход успешно выполнен!";
+                navigation.NavigateTo("profile");
+            }
+            else
+            {
+                isAuthenticated = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            isAuthenticated = false;
+        }
+    }
+    private async Task<HttpResponseMessage> AuthenticateAsync(string username, string password)
+    {
+        var requestBody = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string, string>("username", username),
+            new KeyValuePair<string, string>("password", password),
+        });
+
+        UserDto user = new()
+        {
+            Email = email,
+            Password = password,
+        };
+
+        return await client.PostAsJsonAsync("https://localhost:5001/api/Account/token", user);
+    }
+    public class TokenResponse
+    {
+        public string Access_token { get; set; }
+        // Другие свойства токена, если они есть (например, expiresIn, token_type и т. д.)
+    }
+}

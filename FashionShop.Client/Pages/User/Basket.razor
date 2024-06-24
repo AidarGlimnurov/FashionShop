@@ -1,0 +1,91 @@
+﻿@page "/basket"
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@using FashionShop.Shared.SupportData;
+@using System.Net.Http.Headers;
+@inject HttpClient client
+@inject NavigationManager navigation
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+
+@if (myProducts == null || myProducts.Value == null)
+{
+    <label>Загрузка...</label>
+}
+else
+{
+    <div class="text-center">
+        <button class="btn btn-primary m-2" @onclick="Buy">Заказать</button>
+    </div>
+    <br>
+    @if (!myProducts.Value.Any())
+    {
+        <label>В корзине пусто(</label>
+    }
+    else
+    {
+        foreach (var product in produts)
+        {
+            <div style="width: 23%; height: 15%; margin: 8px; display: inline-block; text-align: center;">
+                <a href="product/@product.ProductId/@product.Id">
+                    <img src="data:image/jpeg;base64,@Convert.ToBase64String(product.Product.Cover)" style="background:gray; height: 100%; width: 95%;" >
+                    <label style="color: black">@product.Product.Name</label>
+                    <br>
+                    <label style="color: black">@product.Amount</label>
+                </a>
+                <button class="btn btn-outline-danger oi oi-minus" @onclick="(()=>Remove(product.Id))"></button>
+            </div>
+        }        
+    }
+}
+@code {
+    Response<IEnumerable<SizeDto>> myProducts;
+    List<SizeDto> produts;
+    Response<UserDto>? user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var cookieContent = await localStorage.GetItemAsync<AuthInfo>(AuthInfo.CookieName);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cookieContent.Key);
+            user = await client.GetFromJsonAsync<Response<UserDto>>("https://localhost:5001/api/Account/GetUserInfo");
+            myProducts = await client.GetFromJsonAsync<Response<IEnumerable<SizeDto>>>($"https://localhost:5001/api/Basket/GetGetForUser?userId={user.Value.Id}");
+            produts = myProducts.Value.ToList();
+            for (int i = produts.Count - 1; i >= 0; i--)
+            {
+                if (produts[i] == null)
+                {
+                    produts.Remove(produts[i]);
+                }
+            }
+            int a = 0;
+        }
+        catch (Exception ex)
+        {
+            navigation.NavigateTo("SignIn");
+        }
+    }
+
+    private void ToProduct(int id)
+    {
+        navigation.NavigateTo($"product/{id}");
+    }
+
+    private void Buy()
+    {
+        navigation.NavigateTo($"orderform/0");
+    }
+    private async Task Remove(int id)
+    {
+        var response = await client.GetFromJsonAsync<Response<ProductDto>>($"https://localhost:5001/api/Basket/RemoveInBasket?userId={user.Value.Id}&productId={id}");
+        myProducts = await client.GetFromJsonAsync<Response<IEnumerable<SizeDto>>>($"https://localhost:5001/api/Basket/GetGetForUser?userId={user.Value.Id}");
+        produts = myProducts.Value.ToList();
+        for (int i = produts.Count - 1; i >= 0; i--)
+        {
+            if (produts[i] == null)
+            {
+                produts.Remove(produts[i]);
+            }
+        }
+    }
+}

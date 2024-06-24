@@ -1,0 +1,65 @@
+﻿@page "/Sizes"
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@inject HttpClient client
+@inject NavigationManager navigation
+@if (sizes == null)
+{
+    <span>Загрузка...</span>
+}
+else
+{
+    <button class="btn btn-secondary" @onclick="GoToAdminPanel" style="margin:10px;">Назад</button>
+    <button class="btn btn-primary" @onclick="ToSizeCreator" style="margin:10px;">Создать размер</button>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Amount</th>
+                <th>Letter</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var size in sizes.Value)
+        {
+            <tr>
+                <td>@size.Id</td>
+                <td>@size.Amount</td>
+                <td>@size.Letter</td>
+                <td><button @onclick="(()=>DeleteSize(size.Id))">Delete</button></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    Response<IEnumerable<SizeDto>> sizes;
+    string msg = "";
+    protected async override Task OnInitializedAsync()
+    {
+        sizes = await client.GetFromJsonAsync<Response<IEnumerable<SizeDto>>>($"https://localhost:5001/api/Size/GetAll");
+    }
+    private async Task DeleteSize(int id)
+    {
+        var res = await client.GetFromJsonAsync<Response>($"https://localhost:5001/api/Size/Delete?id={id}");
+        if (res.IsSuccess)
+        {
+            msg = "Удалено";
+        }
+        else
+        {
+            msg = "Не удалось удалить";
+        }
+    }
+
+    private void ToSizeCreator()
+    {
+        navigation.NavigateTo("sizeCreator");
+    }
+    private void GoToAdminPanel()
+    {
+        navigation.NavigateTo("adminpanel");
+    }
+}

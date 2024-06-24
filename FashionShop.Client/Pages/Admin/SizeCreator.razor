@@ -1,0 +1,72 @@
+﻿@page "/sizeCreator/{Id}"
+
+@inject HttpClient client
+@inject NavigationManager navigation
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@using System.IO;
+
+<h3>Страница для создания размера</h3>
+<button @onclick="Back" class="btn btn-secondary">Назад</button>
+<br>
+<label style="color: #green">@msg</label>
+<br>
+<label for="content">Численное обозначение:</label>
+<input id="content" class="form-control" @bind="size.Amount" />
+<br>
+
+<label for="content">Буквенное обозначение:</label>
+<input id="content" class="form-control" @bind="size.Letter"/>
+<br>
+
+<label for="content">Дополнительное описание:</label>
+<input id="content" class="form-control" @bind="size.Description"/>
+<br>
+
+<label for="content">Количество:</label>
+<input id="content" class="form-control" @bind="size.Quantity"/>
+<br>
+
+<label for="content">Цена:</label>
+<input id="content" class="form-control" @bind="size.Price"/>
+<br>
+
+<button @onclick="Create" class="btn btn-primary">Создать размер</button>
+@code {
+    [Parameter]
+    public string Id { get; set; }
+    Response response;
+    SizeDto size = new();
+    string msg;
+    private async Task Create()
+    {
+        if (size == null || size.Letter == null || size.Amount == null)
+        {
+            msg = "Данные не введены!";
+        }
+        else
+        {
+            if (size.Quantity == null) size.Quantity = 0;
+            size.ProductId = Convert.ToInt32(Id);
+            using HttpResponseMessage TestResponse = await client.PostAsJsonAsync("https://localhost:5001/api/Size/CreateWithEntity", size);
+            TestResponse.EnsureSuccessStatusCode();
+
+            response = await TestResponse.Content.ReadFromJsonAsync<Response>();
+
+            if (response.IsSuccess)
+            {
+                msg = "Размер успешно создан!";
+                Back();
+            }
+            else
+            {
+                msg = $"Ошибка! Размер не создан!\n{response.ErrorInfo}";
+            }
+        }
+    }
+    private void Back()
+    {
+        navigation.NavigateTo($"productSetting/{Id}");
+    }
+}
+

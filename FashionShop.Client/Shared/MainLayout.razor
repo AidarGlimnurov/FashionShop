@@ -1,0 +1,75 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager navigation 
+<div class="page">
+    <div class="wrapper">
+        <header class="header">
+            <div style="background:#293133; width:100%">
+            <br>
+                <NavLink class="nav-link" style="color: #E6E6FA;" href="">
+                    <h1 style="text-align: center; font-family:Lalezar; font-size:48pt;">FashionShop</h1>
+                </NavLink>
+                <div style="margin-left:10vh; font-size:18px; padding-bottom: 15px; display: inline-block;"  class="dropdown">
+                    <button class="menu-button" style="color: #E6E6FA;background: #293133; border:#293133" @onclick="ToggleDropdown">Товары</button>
+                    @if (isDropdownVisible)
+                    {
+                        <div class="dropdown-content" style="background: #293133;">
+                            <button style="color: #E6E6FA; background: #293133; border:#293133" @onclick="GoToWomenProducts" class="menu-item">Для женщин</button>
+                            <br>
+                            <button style="color: #E6E6FA; background: #293133; border:#293133" @onclick="GoToMenProducts" class="menu-item">Для мужчин</button>
+                            <br>
+                            <button style="color: #E6E6FA; background: #293133; border:#293133"  @onclick="GoToDiscontroducts" class="menu-item">По акции</button>
+                        </div>
+                    }
+                </div>
+                <div>
+                    <button @onclick="GoToProfile" style="position: absolute; top: 40px; left: 50px; background: #293133; border:none; height:50px; width: 50px">
+                        <img src="../image/profile-icon.png" alt="Profile-icon" style="border:none; height:50px; width: 50px">
+                    </button>
+                </div>
+                <div>
+                    <button @onclick="GoToBasket" style="position: absolute; top: 40px; right: 50px; background: #293133; border: none; height: 50px; width: 50px">
+                        <img src="../image/shop-bag.png" alt="Profile-icon" style="border:none; height:50px; width: 50px">
+                    </button>
+                </div>
+            </div>
+        </header>
+        <main class="main">
+            @Body
+        </main>
+        <footer class="footer">
+            <div class="footer__content bounding-box" style="background:#293133;">
+                <p style="color:white">&copy - 2023 - Fashion Shop - powered by <span class="white-highlight">Baturina Jasmin</span> </p>
+            </div>
+        </footer>
+    </div>
+</div>
+
+@code{
+    private bool isDropdownVisible = false;
+
+    private void ToggleDropdown()
+    {
+        isDropdownVisible = !isDropdownVisible;
+    }
+
+    private void GoToWomenProducts()
+    {
+        navigation.NavigateTo($"products/1");
+    }
+    private void GoToMenProducts()
+    {
+        navigation.NavigateTo($"products/2");
+    }
+    private void GoToDiscontroducts()
+    {
+        navigation.NavigateTo($"products/4");
+    }
+    private void GoToProfile()
+    {
+        navigation.NavigateTo($"profile");
+    }
+    private void GoToBasket()
+    {
+        navigation.NavigateTo($"basket");
+    }
+}

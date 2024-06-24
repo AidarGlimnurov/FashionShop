@@ -1,0 +1,15 @@
+﻿@page "/PaymentPage/{price}"
+@inject NavigationManager navigation
+
+<h1>Оплата</h1>
+<h3>К оплате: @Price</h3>
+<button class="btn btn-primary" @onclick="ToOrders">Оплатить</button>
+@code {
+    [Parameter]
+    public string Price { get; set; }
+
+    void ToOrders()
+    {
+        navigation.NavigateTo("MyOrders");
+    }
+}

@@ -1,0 +1,71 @@
+﻿@page "/Order/{id}"
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@using FashionShop.Shared.SupportData;
+@using System.Net.Http.Headers;
+@inject HttpClient client
+@inject NavigationManager navigation
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@if (orders == null)
+{
+    <span>Загрузка...</span>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Название</th>
+                <th>Размер</th>
+                <th>Цена</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                @foreach (var orderItem in orders.Value)
+                {
+                    <td>@orderItem.Product.Product.Name</td>
+                    <td>@orderItem.Product.Amount</td>
+                    <td>@orderItem.Product.Price</td>
+                }
+            </tr>
+        </tbody>
+    </table>
+    <h4>Статус: @order.Status</h4>
+    <h4>Стоимость: @Price</h4>
+    <h4>Имя: @order.Fio</h4>
+    <h4>Адрес: @order.Adress</h4>
+    <h4>Индекс: @order.Index</h4>
+    <button class="btn btn-danger">Отменить заказ</button>
+}
+@code {
+    [Parameter]
+    public string Id { get; set; }
+    double Price = 0;
+    Response<UserDto>? user;
+    Response<IEnumerable<OrderProductDto>> orders;
+    OrderDto order;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var cookieContent = await localStorage.GetItemAsync<AuthInfo>(AuthInfo.CookieName);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cookieContent.Key);
+            user = await client.GetFromJsonAsync<Response<UserDto>>("https://localhost:5001/api/Account/GetUserInfo");
+            orders = await client.GetFromJsonAsync<Response<IEnumerable<OrderProductDto>>>($"https://localhost:5001/api/Order/Get?id={Id}");
+            if (orders.Value != null)
+            {
+                var o = orders.Value.ToList();
+                order = o[0].Order;
+                foreach (var item in o)
+                {
+                    Price += item.Product.Price;
+                }                
+            }
+        }
+        catch (Exception ex)
+        {
+            navigation.NavigateTo("SignIn");
+        }
+    }
+}

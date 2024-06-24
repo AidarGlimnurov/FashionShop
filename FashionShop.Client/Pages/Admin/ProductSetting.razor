@@ -1,0 +1,204 @@
+﻿@page "/productSetting/{id}"
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@inject HttpClient client
+@inject NavigationManager navigation
+
+@if(product==null && productSizes == null && sizes == null)
+{
+    <span>loading...</span>
+}
+else
+{
+    <div class="jumbotron" style="background:#FFFAFA">
+        <h3>Изменить продукт</h3>
+        <br>
+        <button @onclick="Back" class="btn btn-secondary">Назад</button>
+        <br>
+        <label>Название:</label> 
+        <br>
+        <input id="content" class="form-control" @bind="@product.Value.Name"/>
+        <br>
+        <label>Цена:</label>
+        <br>
+        <label>Описание:</label>
+        <br>
+        <input id="content" class="form-control" @bind="@product.Value.Description"/>
+        <br>
+        <button class="btn btn-dark" @onclick="UpdateProduct">Обновить данные</button>
+        <hr/>
+        @*---------------------------------------------------------------------------------*@
+        <br>
+        <label>Рамеры</label>
+        <br>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Amount</th>
+                    <th>Letter</th>
+                    <th>Количесвто</th>
+                    <th>Сохранить</th>
+                    <th>Удалить</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var size in sizes.Value)
+                {
+                    <tr>
+                        <td>@size.Id</td>
+                        <td><input id="content" class="form-control" @bind="size.Amount"/></td>
+                        <td><input id="content" class="form-control" @bind="size.Letter"/></td>
+                        <td><input id="content" class="form-control" @bind="size.Quantity"/></td>
+                        <td><input id="content" class="form-control" @bind="size.Price"/></td>
+                        <td><button class="btn btn-danger" @onclick="(()=> SaveSize(size))">Сохранить</button></td>
+                        <td><button class="btn btn-warning" @onclick="(()=>DeleteSize(size.Id))">Удалить</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+@*        <select class="form-control" @bind="@selectedSize">
+            @foreach (var size in sizes.Value)
+            {
+                <option value="@size.Id">@size.Amount --- @size.Letter</option>
+            }
+        </select>*@
+        <br>
+        <div class="btn btn-group">
+            <button class="btn btn-success" @onclick="AddSize">Добавить размер</button>
+        </div>
+        <hr/>
+        @*---------------------------------------------------------------------------------*@
+        <br>
+        <label>Тэги</label>
+        <br>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Name</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tag in productTags.Value)
+                {
+                    <tr>
+                        <td>@tag.Id</td>
+                        <td>@tag.Name</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <select class="form-control" @bind="@selectedTag">
+            @foreach (var tag in tags.Value)
+            {
+                <option value="@tag.Id">@tag.Name</option>
+            }
+        </select>
+        <br>
+        <div class="btn btn-group">
+            <button class="btn btn-dark" @onclick="AddTag">Добавить тэг</button>
+            <button class="btn btn-dark" @onclick="DeleteTag">Удалить тэг</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string Id { get; set; }
+
+    Response response;
+    Response<ProductDto> product;
+    Response<IEnumerable<SizeDto>> productSizes;
+    Response<IEnumerable<SizeDto>> sizes;
+
+    Response<IEnumerable<TagDto>> productTags;
+    Response<IEnumerable<TagDto>> tags;
+
+    int selectedSize;
+    int selectedTag;
+    string msg="";
+
+    protected override async Task OnInitializedAsync()
+    {
+        product = await client.GetFromJsonAsync<Response<ProductDto>>($"https://localhost:5001/api/Product/Read?id={Id}");
+        //productSizes = await client.GetFromJsonAsync<Response<IEnumerable<SizeDto>>>($"https://localhost:5001/api/Product/GetSizes?productId={Id}");
+        productTags = await client.GetFromJsonAsync<Response<IEnumerable<TagDto>>>($"https://localhost:5001/api/Product/GetTags?productId={Id}");
+        tags = await client.GetFromJsonAsync<Response<IEnumerable<TagDto>>>($"https://localhost:5001/api/Tag/GetAll");
+        await GetSizes();
+    }
+
+    async Task GetSizes()
+    {
+        sizes = await client.GetFromJsonAsync<Response<IEnumerable<SizeDto>>>($"https://localhost:5001/api/Size/GetForProduct?id={Id}");
+    }
+
+    private async Task UpdateProduct()
+    {
+        using HttpResponseMessage TestResponse = await client.PostAsJsonAsync("https://localhost:5001/api/Product/Update", product.Value);
+
+        response = await TestResponse.Content.ReadFromJsonAsync<Response>();
+
+        if (response.IsSuccess)
+        {
+            msg = "Продукт успешно обновлён!";
+        }
+        else
+        {
+            msg = $"Ошибка! Не удалось обновить продукт!\n{response.ErrorInfo}";
+        }
+    }
+
+    private async Task SaveSize(SizeDto size)
+    {
+        await client.GetFromJsonAsync<Response>($"https://localhost:5001/api/Size/UpdateWithEntity?size={size}");
+    }
+    private async Task DeleteSize(int id)
+    {
+        await client.GetFromJsonAsync<Response>($"https://localhost:5001/api/Size/Delete?id={id}");
+        await GetSizes();
+    }
+    private async Task AddSize()
+    {
+        navigation.NavigateTo($"SizeCreator/{Id}");
+        //if (selectedSize != 0)
+        //{
+        //    await GetSizes();
+        //    await client.GetFromJsonAsync<Response>($"https://localhost:5001/api/Product/AddSize?sizeId={selectedSize}&productId={Id}");
+        //    productSizes = await client.GetFromJsonAsync<Response<IEnumerable<SizeDto>>>($"https://localhost:5001/api/Product/GetSizes?productId={Id}");
+        //}
+        //else
+        //{
+        //    msg = "Пожалуйста, выберите размер перед добавлением.";
+        //}
+    }
+    private async Task DeleteSize()
+    {
+        await client.GetFromJsonAsync<Response>($"https://localhost:5001/api/Product/RemoveSize?sizeId={selectedSize}&productId={Id}");
+        productSizes = await client.GetFromJsonAsync<Response<IEnumerable<SizeDto>>>($"https://localhost:5001/api/Product/GetSizes?productId={Id}");
+    }
+
+    private async Task AddTag()
+    {
+        if (selectedTag != 0)
+        {
+            await client.GetFromJsonAsync<Response>($"https://localhost:5001/api/Product/AddTag?tagId={selectedTag}&productId={Id}");
+            productTags = await client.GetFromJsonAsync<Response<IEnumerable<TagDto>>>($"https://localhost:5001/api/Product/GetTags?productId={Id}");
+        }
+        else
+        {
+            msg = "Пожалуйста, выберите тэг перед добавлением";
+        }
+    }
+    private async Task DeleteTag()
+    {
+        await client.GetFromJsonAsync<Response>($"https://localhost:5001/api/Product/RemoveTag?tagId={selectedTag}&productId={Id}");
+        productTags = await client.GetFromJsonAsync<Response<IEnumerable<TagDto>>>($"https://localhost:5001/api/Product/GetTags?productId={Id}");
+    }
+    private void Back()
+    {
+        navigation.NavigateTo("adminProducts");
+    }
+}

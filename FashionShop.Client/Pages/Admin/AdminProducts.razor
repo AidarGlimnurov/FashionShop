@@ -1,0 +1,76 @@
+﻿@page "/AdminProducts"
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@inject HttpClient client
+@inject NavigationManager navigation
+
+@if (products == null)
+{
+    <span>Загрузка...</span>
+}
+else
+{
+    <H1>Продукты</H1>
+    <button class="btn btn-secondary" @onclick="GoToAdminPanel" style="margin:10px;">Назад</button>
+    <button class="btn btn-primary" @onclick="ToProductCreator" style="margin:10px;">Создать товар</button>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Delete</th>
+                <th>Edit</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var product in products.Value)
+            {
+                <tr>
+                    <td>@product.Id</td>
+                    <td>@product.Name</td>
+                    <td><button class="btn btn-warning" @onclick="(()=>DeleteProduct(product.Id))">Delete</button></td>
+                    <td><button class="btn btn-info" @onclick="(()=>GoToEdit(product.Id))">Edit</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+}
+@code {
+
+    Response<IEnumerable<ProductDto>> products;
+    string msg = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        products = await client.GetFromJsonAsync<Response<IEnumerable<ProductDto>>>($"https://localhost:5001/api/Product/GetAll");
+
+    }
+
+    private void GoToEdit(int id)
+    {
+        navigation.NavigateTo($"productSetting/{id}");
+    }
+    private async Task DeleteProduct(int id)
+    {
+        var res = await client.GetFromJsonAsync<Response>($"https://localhost:5001/api/Product/Delete?id={id}");
+        if (res.IsSuccess)
+        {
+            msg = "Удалено";
+        }
+        else
+        {
+            msg = "Не удалось удалить";
+        }
+    }
+
+    private void ToProductCreator()
+    {
+        navigation.NavigateTo("productCreator");
+    }
+
+    private void GoToAdminPanel()
+    {
+        navigation.NavigateTo("adminpanel");
+    }
+}

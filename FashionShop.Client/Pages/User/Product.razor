@@ -1,0 +1,253 @@
+﻿@page "/product/{id}/{sizeId}"
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@using FashionShop.Shared.SupportData;
+@using System.Net.Http.Headers;
+@inject HttpClient client
+@inject NavigationManager navigation
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+
+@if(product == null)
+{
+    <label>Загрузка...</label>
+}
+else
+{
+    <table>
+        <tr>              
+            <td>
+                @if (product.Value.Cover != null)
+                {
+                    <img src="data:image/jpeg;base64,@Convert.ToBase64String(product.Value.Cover)" style="background:gray; height: 100%; width: 100%; border: 1px solid lightgray ;" >
+                }
+
+            </td>
+            <td>
+                <h3 style="margin:10px;">@product.Value.Name</h3>
+                <h4 style="margin:10px;">Цена: @size.Value.Price &#8381</h4>
+                <br>
+                @if (size.Value.Quantity < 1)
+                {
+                    <label>НЕТ В НАЛИЧИИ</label>
+                }
+                else
+                {
+                    <button class="btn btn-primary" @onclick="(()=>Buy(SizeId))" style="margin:10px;">Купить</button>
+                    <br>
+                    @if (!inBasket)
+                    {
+                        <button class="btn btn-secondary" @onclick="AddInBasket" style="margin:10px;">В корзину</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-danger" @onclick="RemoveInBasket" style="margin:10px;">Убрать из корзины</button>
+                    }                    
+                }
+                <br>
+                <label>@msg</label>
+            </td>
+        </tr>
+    </table>
+    @if (product.Value.Img1 != null || product.Value.Img2 != null || product.Value.Img3 != null)
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex flex-row flex-nowrap overflow-auto">
+                @if (product.Value.Img1 != null)
+                {
+                    <div class="p-2">
+                        <img src="data:image/jpeg;base64,@Convert.ToBase64String(product.Value.Img1)" class="img-thumbnail" alt="...">
+                    </div>
+                }
+                @if (product.Value.Img2 != null)
+                {
+                    <div class="p-2">
+                        <img src="data:image/jpeg;base64,@Convert.ToBase64String(product.Value.Img2)" class="img-thumbnail" alt="...">
+                    </div>
+                }
+                @if (product.Value.Img3 != null)
+                {
+                    <div class="p-2">
+                        <img src="data:image/jpeg;base64,@Convert.ToBase64String(product.Value.Img3)" class="img-thumbnail" alt="...">
+                    </div>
+                }
+                </div>
+            </div>
+        </div>
+    }
+    <div style="text-align:center">
+        <label>
+            @product.Value.Description
+        </label>
+    </div>
+    <h3 style="text-align:center">Размерный ряд</h3>
+    <div class="btn-group text-center" role="group" aria-label="Basic example">
+        @if (sizes != null)
+        {
+            @foreach (var size in sizes.Value)
+            {
+                <button type="button" class="btn btn-outline-primary" @onclick="(()=>GoToSize(size.Id))">@size.Letter</button>
+            }
+        }
+    </div>
+    @if (size != null)
+    {
+        <div class="jumbotron" style="background:#FFFAFA;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Числ. обз.</th>
+                        <th>Букв. обз.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>@size.Value.Amount</td>
+                        <td>@size.Value.Letter</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    }
+    @if (reviews !=null && reviews.IsSuccess)
+    {
+        @if (myReview != null)
+        {
+            <div class="jumbotron rounded-1 m-2 p-2 bg-white border-1">
+                <label>Мой отзыв</label>
+                <textarea class="form-control" id="exampleFormControlTextarea1" rows="3" @bind="myReview.Content"></textarea>
+                <button class="btn btn-warning m-1" @onclick="Edit">Отправить</button>
+            </div>
+        }
+        @if ( reviews.Value != null)
+        {
+            foreach (var review in reviews.Value)
+            {
+                <div class="jumbotron rounded-1 m-2 p-2 bg-light border-1">
+                    <h5>@review.User.Name</h5>
+                    <span>@review.Content</span>
+                </div>
+            }            
+        }
+    }
+}
+
+@code {
+
+    /// <summary>
+    /// Product Id
+    /// </summary>
+    [Parameter]
+    public string Id { get; set; }
+
+    [Parameter]
+    public string SizeId { get; set; }
+
+    bool inBasket = false;
+    Response<ProductDto> product;
+    Response<SizeDto> size;
+    string msg = string.Empty;
+    Response<IEnumerable<SizeDto>> sizes;
+    Response<IEnumerable<ReviewDto>> reviews;
+    ReviewDto myReview = new();
+    Response<UserDto>? user;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Вызывается при изменении параметров, включая Id
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var cookieContent = await localStorage.GetItemAsync<AuthInfo>(AuthInfo.CookieName);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cookieContent.Key);
+            user = await client.GetFromJsonAsync<Response<UserDto>>("https://localhost:5001/api/Account/GetUserInfo");
+        }
+        catch (Exception ex)
+        {
+            navigation.NavigateTo("SignIn");
+        }
+
+        reviews = await client.GetFromJsonAsync<Response<IEnumerable<ReviewDto>>>($"https://localhost:5001/api/Review/GetByProduct?productId={SizeId}");
+        if (reviews != null && reviews.IsSuccess && user != null)
+        {
+            if (user.IsSuccess)
+            {
+                foreach (var review in reviews.Value)
+                {
+                    if (review.Id == user.Value.Id)
+                    {
+                        myReview = review;                
+                    }
+                }                            
+            }
+        }
+        product = await client.GetFromJsonAsync<Response<ProductDto>>($"https://localhost:5001/api/Product/Read?id={Id}");
+        sizes = await client.GetFromJsonAsync<Response<IEnumerable<SizeDto>>>($"https://localhost:5001/api/Product/GetSizes?productId={Id}");
+        await GetSize();
+        StateHasChanged(); // Вызов этого метода приводит к перерисовке компонента
+    }
+    async Task GetSize()
+    {
+        if (SizeId == "0")
+        {
+            var sz = sizes.Value.ToList();
+            size = await client.GetFromJsonAsync<Response<SizeDto>>($"https://localhost:5001/api/Size/GetSize?sizeId={sz[0].Id}");
+            SizeId = size.Value.Id.ToString();
+        }
+        else
+        {
+            size = await client.GetFromJsonAsync<Response<SizeDto>>($"https://localhost:5001/api/Size/GetSize?sizeId={SizeId}");
+            SizeId = size.Value.Id.ToString();
+        }
+
+        var response = await client.GetFromJsonAsync<Response<SizeDto>>($"https://localhost:5001/api/Basket/GetProduct?userId={user.Value.Id}&productId={SizeId}");
+        if (response.IsSuccess)
+        {
+            inBasket = true;
+        }
+        else
+        {
+            inBasket = false;
+        }
+    }
+    private async Task AddInBasket()
+    {
+        var response = await client.GetFromJsonAsync<Response<ProductDto>>($"https://localhost:5001/api/Basket/AddInBasket?userId={user.Value.Id}&productId={SizeId}");
+        inBasket = true;
+    }
+    private async Task RemoveInBasket()
+    {
+        var response = await client.GetFromJsonAsync<Response<ProductDto>>($"https://localhost:5001/api/Basket/RemoveInBasket?userId={user.Value.Id}&productId={SizeId}");
+        inBasket = false;
+    }
+    private async Task TestMode()
+    {
+        await AddInBasket();
+        navigation.NavigateTo("basket");
+    }
+    private void GoToSize(int sId)
+    {
+        navigation.NavigateTo($"product/{Id}/{sId}");
+    }
+    private void Buy(string id)
+    {
+        navigation.NavigateTo($"OrderForm/{id}");
+    }
+    async Task Edit()
+    {
+        if (myReview.UserId == null)
+        {
+            myReview.ProductId = Convert.ToInt32(Id);
+            myReview.UserId = user.Value.Id;
+            var resp = await client.PostAsJsonAsync($"https://localhost:5001/api/Review/CreateReview?review", myReview);
+        }
+        else
+        {
+            var resp = await client.PostAsJsonAsync($"https://localhost:5001/api/Review/Edit?review", myReview);
+        }
+    }
+}

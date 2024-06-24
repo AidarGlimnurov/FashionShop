@@ -1,0 +1,58 @@
+﻿@page "/MyOrders"
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@using FashionShop.Shared.SupportData;
+@using System.Net.Http.Headers;
+@inject HttpClient client
+@inject NavigationManager navigation
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+
+@if (orders == null)
+{
+    <span>Загрузка...</span>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>№</th>
+                <th>Статус</th>
+                <th>Подробнее</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var order in orders.Value)
+            {
+                <tr>
+                    <td>@order.Id</td>
+                    <td>@order.Status</td>
+                    <td><button class="btn btn-outline-info" @onclick="(()=>GoToOrder(order.Id))">Подробнее</button></td>
+                </tr>                
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    Response<UserDto>? user;
+    Response<IEnumerable<OrderDto>> orders;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var cookieContent = await localStorage.GetItemAsync<AuthInfo>(AuthInfo.CookieName);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cookieContent.Key);
+            user = await client.GetFromJsonAsync<Response<UserDto>>("https://localhost:5001/api/Account/GetUserInfo");
+            orders = await client.GetFromJsonAsync<Response<IEnumerable<OrderDto>>>($"https://localhost:5001/api/Order/GetForUser?userId={user.Value.Id}");
+        }
+        catch (Exception ex)
+        {
+            navigation.NavigateTo("SignIn");
+        }
+    }
+    void GoToOrder(int id)
+    {
+        navigation.NavigateTo($"order/{id}");
+    }
+}

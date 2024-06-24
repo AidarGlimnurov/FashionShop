@@ -1,0 +1,29 @@
+﻿@page "/counter"
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@inject HttpClient client
+
+<h1>Counter</h1>
+
+<p>Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+<button class="btn btn-primary" @onclick="Get">Get Role</button>
+@if (response != null)
+{
+    <span>@response.Value.Name</span>
+}      
+
+@code {
+    Response<RoleDto> response;
+    private int currentCount = 0;
+
+    private async Task Get()
+    {
+        response = await client.GetFromJsonAsync<Response<RoleDto>>($"https://localhost:5001/api/Role/Read?id={1}");
+    }
+    private void IncrementCount()
+    {
+        currentCount++;
+    }
+}

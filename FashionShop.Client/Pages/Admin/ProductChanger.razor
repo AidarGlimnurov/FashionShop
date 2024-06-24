@@ -1,0 +1,17 @@
+﻿@page "/productChanger/{Id}"
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@inject HttpClient client
+<h3>ProductChanger</h3>
+
+@code {
+    [Parameter]
+    public string Id { get; set; }
+
+    Response<ProductDto> product;
+
+    protected override async Task OnInitializedAsync()
+    {
+        product = await client.GetFromJsonAsync<Response<ProductDto>>($"https://localhost:5001/api/Product/Read?id={Id}");
+    }
+}

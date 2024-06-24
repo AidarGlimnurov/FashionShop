@@ -1,0 +1,94 @@
+﻿@page "/signup"
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@inject HttpClient client
+@inject NavigationManager navigation
+@if (mode == 1)
+{
+    <div style="text-align: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+        <h3>Регистрация</h3>
+        <div class="form-group" style="text-align: left; width: 300px">
+            <label for="content">Имя:</label>
+            <input id="content" class="form-control" @bind="user.Name" />
+            <br>
+            <label for="content">Email:</label>
+            <input id="content" class="form-control" @bind="user.Email" />
+            <br>
+            <label for="content">Пароль:</label>
+            <input id="content" class="form-control" @bind="user.Password" />
+            <br>
+        </div>
+        <button class="btn btn-primary" @onclick="GetCode">Зарегистрироваться</button>
+        <label>@msg</label>
+    </div>
+}
+@if (mode == 2)
+{
+    <div style="text-align: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+        <h3>Подтвердите почту</h3>
+        <div class="form-group" style="text-align: left; width: 300px">
+            <label for="content">Мы выслали на вашу почту <strong>@user.Email</strong> 6-ти значный код</label>
+            <label for="content">Пожалуйста проверьте почту</label>
+            <input id="content" class="form-control" @bind="code" />
+            <br>
+        </div>
+        <button class="btn btn-primary" @onclick="Create">Зарегистрироваться</button>
+        <label>@msg</label>
+    </div>
+}
+@code {
+    int mode = 1;
+    private UserDto user = new();
+    string msg = "";
+    Response response;
+    string code;
+    private async Task GetCode()
+    {
+        if (user == null || user.Password == null || user.Email == null || user.Name == null)
+        {
+            msg = "Данные не введены!";
+        }
+        else
+        {
+            user.RoleId = 2;
+            //using HttpResponseMessage TestResponse = await client.PostAsJsonAsync("https://localhost:5001/api/User/CreateWithBasket", user);
+            //using HttpResponseMessage TestResponse = await client.PostAsJsonAsync("https://localhost:5001/api/User/CreateWithCode", user);
+            //TestResponse.EnsureSuccessStatusCode();
+
+            //response = await TestResponse.Content.ReadFromJsonAsync<Response>();
+            response = await client.GetFromJsonAsync<Response>($"https://localhost:5001/api/User/GetCode?email={user.Email}");
+
+            if (response.IsSuccess)
+            {
+                mode = 2;
+                //msg = "Аккаунт успешно создан!";
+                //navigation.NavigateTo($"signin");
+            }
+            else
+            {
+                msg = $"Ошибка! Регистрация не удалась!\n{response.ErrorInfo}";
+            }
+        }
+    }
+    private async Task Create()
+    {
+        user.code = code;
+        //using HttpResponseMessage TestResponse = await client.PostAsJsonAsync("https://localhost:5001/api/User/CreateWithBasket", user);
+        using HttpResponseMessage TestResponse = await client.PostAsJsonAsync("https://localhost:5001/api/User/CreateWithCode", user);
+        TestResponse.EnsureSuccessStatusCode();
+
+        response = await TestResponse.Content.ReadFromJsonAsync<Response>();
+
+        if (response.IsSuccess)
+        {
+            navigation.NavigateTo($"signin");
+            mode = 1;
+            //msg = "Аккаунт успешно создан!";
+            //navigation.NavigateTo($"signin");
+        }
+        else
+        {
+            msg = $"Ошибка! Регистрация не удалась!\n{response.ErrorInfo}";
+        }
+    }
+}

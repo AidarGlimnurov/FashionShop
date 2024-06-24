@@ -1,0 +1,82 @@
+﻿@page "/profile"
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@using System.Net.Http.Headers;
+@using FashionShop.Shared.SupportData;
+@inject NavigationManager navigation
+@inject HttpClient client
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+
+@if (responseUser == null)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+}
+else
+{
+    <div class="container mt-5">
+        <div class="jumbotron bg-light">
+            <h3>Личный кабинет</h3>
+
+            <div class="profile-info mt-4">
+                <div>
+                    <label class="font-weight-bold">Имя:</label>
+                    <span>@responseUser.Value.Name</span>
+                </div>
+                <div>
+                    <label class="font-weight-bold">Логин:</label>
+                    <span>@responseUser.Value.Email</span>
+                </div>
+                <div>
+                    <label class="font-weight-bold">Роль:</label>
+                    <span>@responseUser.Value.Role.Name</span>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button class="btn btn-primary mr-3" @onclick="GoToMyOrders">Мои заказы</button>
+                <button class="btn btn-info mr-3" @onclick="LogOut">Выйти</button>
+                @if (responseUser.Value.Role.Name == "SuperAdmin" || responseUser.Value.Role.Name == "admin")
+                {
+                    <button class="btn btn-success" @onclick="GoToAdminPanel">Админ панель</button>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    Response<UserDto> responseUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var cookieContent = await localStorage.GetItemAsync<AuthInfo>(AuthInfo.CookieName);
+            // Установка Bearer токена в заголовке Authorization
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cookieContent.Key);
+            responseUser = await client.GetFromJsonAsync<Response<UserDto>>("https://localhost:5001/api/User/GetUserInfo");
+        }
+        catch (Exception ex)
+        {
+
+            navigation.NavigateTo("SignIn");
+        }
+    }
+
+    private void GoToAdminPanel()
+    {
+        navigation.NavigateTo("adminPanel");
+    }
+
+    private void GoToMyOrders()
+    {
+        navigation.NavigateTo("MyOrders");
+    }
+    private void LogOut()
+    {
+        localStorage.ClearAsync();
+        navigation.NavigateTo("SignIn");
+    }
+}

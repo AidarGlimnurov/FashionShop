@@ -1,0 +1,49 @@
+﻿@page "/tagCreator"
+@inject HttpClient client
+@inject NavigationManager navigation
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@using System.IO;
+@using System.Net.Http;
+
+<h3>Страница для создания размера</h3>
+<button @onclick="Back" class="btn btn-secondary">Назад</button>
+<label style="color: #green"></label>
+<label for="content">Название:</label>
+<input id="content" class="form-control" @bind="tag.Name" />
+<br>
+
+<button @onclick="Create" class="btn btn-primary">Создать тэг</button>
+@code {
+    Response response;
+    TagDto tag = new();
+    string msg;
+    private async Task Create()
+    {
+        if (tag == null || tag.Name == null)
+        {
+            msg = "Данные не введены!";
+        }
+        else
+        {
+            using HttpResponseMessage TestResponse = await client.PostAsJsonAsync("https://localhost:5001/api/Tag/Create", tag);
+            TestResponse.EnsureSuccessStatusCode();
+
+            response = await TestResponse.Content.ReadFromJsonAsync<Response>();
+
+            if (response.IsSuccess)
+            {
+                msg = "Тэг успешно создан!";
+                navigation.NavigateTo("tagCreator");
+            }
+            else
+            {
+                msg = $"Ошибка! Тэг не создан!\n{response.ErrorInfo}";
+            }
+        }
+    }
+    private void Back()
+    {
+        navigation.NavigateTo("tags");
+    }
+}

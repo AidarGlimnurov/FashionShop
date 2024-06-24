@@ -1,0 +1,47 @@
+﻿@page "/products/{id}"
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@inject HttpClient client
+@inject NavigationManager navigation
+
+@if (allProducts == null)
+{
+    <label>Загрузка...</label>
+}
+else
+{
+    foreach (var product in allProducts.Value)
+    {
+        <div style="width: 23%; height: 15%; margin: 8px; display: inline-block; text-align: center;">
+            <a href="product/@product.Id/0">
+                <img src="data:image/jpeg;base64,@Convert.ToBase64String(product.Cover)" style="background:gray; height: 100%; width: 95%;" >
+                <label style="color: black">@product.Name</label>
+            </a>
+        </div>
+    }
+}
+
+@code {
+
+    [Parameter]
+    public string Id { get; set; }
+
+    Response<IEnumerable<ProductDto>> allProducts;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Вызывается при изменении параметров, включая Id
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        allProducts = await client.GetFromJsonAsync<Response<IEnumerable<ProductDto>>>($"https://localhost:5001/api/Product/GetByTag?tagId={Id}");
+        StateHasChanged(); // Вызов этого метода приводит к перерисовке компонента
+    }
+
+    private void ToProduct(int id)
+    {
+        navigation.NavigateTo($"product/{id}/0");
+    }
+}

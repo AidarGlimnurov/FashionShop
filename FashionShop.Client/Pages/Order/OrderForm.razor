@@ -1,0 +1,111 @@
+﻿@page "/OrderForm/{id}"
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@using FashionShop.Shared.SupportData;
+@using System.Net.Http.Headers;
+@inject HttpClient client
+@inject NavigationManager navigation
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+
+@if (products == null)
+{
+    <span>Загрузка...</span>
+}
+else
+{
+
+            <table>
+                <tbody>
+                    @foreach (var product in products)
+                    {
+                            <tr>
+                                <td>
+                                    <h5>@product.Product.Name --- @product.Amount --- @product.Price</h5>
+                                </td>
+                            </tr>
+                        <br>
+                    }
+                </tbody>
+            </table>
+    <h4>Цена: @allPrice</h4>
+
+    
+
+    <form>
+        <div class="mb-3">
+            <label for="index" class="form-label">Индекс</label>
+            <input type="text" class="form-control" id="index" @bind="order.Index" placeholder="Почтовый индекс" name="Index">
+        </div>
+        <div class="mb-3">
+            <label for="fio" class="form-label">ФИО</label>
+            <input type="text" class="form-control" id="fio" @bind="order.Fio" placeholder="ФИО" name="Fio">
+        </div>
+        <div class="mb-3">
+            <label for="adress" class="form-label">Адрес</label>
+            <input type="text" class="form-control" id="adress" @bind="order.Adress" placeholder="Адрес" name="Adress">
+        </div>
+    </form>
+        <button class="btn btn-primary" @onclick="Pay">Оплатить</button>
+}
+
+@code {
+    [Parameter]
+    public string Id { get; set; }
+    Response<IEnumerable<SizeDto>> myProducts;
+    List<SizeDto> products;
+    Response<UserDto>? user;
+    OrderDto order = new();
+
+    double allPrice = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var cookieContent = await localStorage.GetItemAsync<AuthInfo>(AuthInfo.CookieName);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cookieContent.Key);
+            user = await client.GetFromJsonAsync<Response<UserDto>>("https://localhost:5001/api/Account/GetUserInfo");
+
+            if (Id == "0")
+            {
+                myProducts = await client.GetFromJsonAsync<Response<IEnumerable<SizeDto>>>($"https://localhost:5001/api/Basket/GetGetForUser?userId={user.Value.Id}");
+                products = myProducts.Value.ToList();
+                for (int i = products.Count - 1; i >= 0; i--)
+                {
+                    if (products[i] == null)
+                    {
+                        products.Remove(products[i]);
+                    }
+                }
+            }
+            else
+            {
+                var pr = await client.GetFromJsonAsync<Response<SizeDto>>($"https://localhost:5001/api/Size/GetSize?size={Id}");
+                products.Add(pr.Value);
+            }
+            foreach (var pr in products)
+            {
+                allPrice += pr.Price;
+            }                
+            int a = 0;
+        }
+        catch (Exception ex)
+        {
+            navigation.NavigateTo("SignIn");
+        }
+    }
+    private async Task Pay()
+    {
+        order.Status = "заказ принят";
+        order.UserId = user.Value.Id;
+        order.User = user.Value;
+        int[] ids = new int[products.Count];
+        for (int i = 0; i < ids.Length; i++)
+        {
+            ids[i] = products[i].Id;
+        }
+        order.AllId = ids;
+        var resp = await client.PostAsJsonAsync($"https://localhost:5001/api/Order/CreateOrder?order", order);
+        navigation.NavigateTo($"paymentPage/{allPrice}");
+    }
+}

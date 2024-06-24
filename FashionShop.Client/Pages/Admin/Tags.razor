@@ -1,0 +1,65 @@
+﻿@page "/Tags"
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@inject HttpClient client
+@inject NavigationManager navigation
+
+@if (tags == null)
+{
+    <span>Загрузка...</span>
+}
+else
+{
+    <button class="btn btn-secondary" @onclick="GoToAdminPanel" style="margin:10px;">Назад</button>
+    <button class="btn btn-primary" @onclick="ToTagCreator" style="margin:10px;">Создать тэг</button>
+    <br>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Del</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var tag in tags.Value)
+        {
+            <tr>
+                <td>@tag.Id</td>
+                <td>@tag.Name</td>
+                <td><button @onclick="(()=>DeleteTag(tag.Id))">Delete</button></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+@code {
+    string msg = "";
+    Response<IEnumerable<TagDto>> tags;
+    protected async override Task OnInitializedAsync()
+    {
+        tags = await client.GetFromJsonAsync<Response<IEnumerable<TagDto>>>($"https://localhost:5001/api/Tag/GetAll");
+    }
+
+    private void ToTagCreator()
+    {
+        navigation.NavigateTo("tagCreator");
+    }
+
+    private async Task DeleteTag(int id)
+    {
+        var res = await client.GetFromJsonAsync<Response>($"https://localhost:5001/api/Tag/Delete?id={id}");
+        if (res.IsSuccess)
+        {
+            msg = "Удалено";
+        }
+        else
+        {
+            msg = "Не удалось удалить";
+        }
+    }
+    private void GoToAdminPanel()
+    {
+        navigation.NavigateTo("adminpanel");
+    }
+}

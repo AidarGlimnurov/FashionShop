@@ -1,0 +1,35 @@
+﻿@page "/adminPanel"
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@inject HttpClient client
+@inject NavigationManager navigation
+
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Панель администратора</h1>
+    <div class="row justify-content-center">
+        <div class="col-md-4">
+            <button class="btn btn-primary btn-block" @onclick="GoToProducts">Товары</button>
+        </div>
+        <div class="col-md-4">
+            <button class="btn btn-primary btn-block" @onclick="GoToOrders">Заказы</button>
+        </div>
+        <div class="col-md-4">
+            <button class="btn btn-primary btn-block" @onclick="GoToTags">Тэги</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private void GoToProducts()
+    {
+        navigation.NavigateTo("adminProducts");
+    }
+    private void GoToOrders()
+    {
+        navigation.NavigateTo("AdminOrders");
+    }
+    private void GoToTags()
+    {
+        navigation.NavigateTo("tags");
+    }
+}

@@ -1,0 +1,130 @@
+﻿@page "/productCreator"
+
+@inject HttpClient client
+@inject NavigationManager navigation
+@using FashionShop.Shared.Dtos;
+@using FashionShop.Shared.OutputData;
+@using System.IO;
+
+<h3>Страница для создания продукта</h3>
+<button class="btn btn-secondary" @onclick="Back">Назад</button>
+<br>
+<label style="color: #green"></label>
+<label for="content">Имя:</label>
+<input id="content" class="form-control" @bind="product.Name" />
+<br>
+
+<label for="content">Описание:</label>
+<input id="content" class="form-control" @bind="product.Description"/>
+<br>
+
+
+<label for="content">Обложка:</label>
+<InputFile OnChange="HandleFileChange" />
+<br>
+
+<label for="content">Фото 1:</label>
+<InputFile OnChange="HandleFileChange1" />
+<br>
+
+<label for="content">Фото 2:</label>
+<InputFile OnChange="HandleFileChange2" />
+<br>
+
+<label for="content">Фото 3:</label>
+<InputFile OnChange="HandleFileChange3" />
+<br>
+<br>
+
+<button @onclick="Create" class="btn btn-primary">Создать продукт</button>
+@code {
+    Response response;
+
+    string msg;
+    ProductDto product = new();
+
+    public string FileName { get; set; }
+    public byte[] Content { get; set; }
+
+    //Изображение
+    private IBrowserFile selectedImage;
+    private IBrowserFile selectedImage1;
+    private IBrowserFile selectedImage2;
+    private IBrowserFile selectedImage3;
+    private string uploadMessage;
+
+    private async Task HandleFileChange(InputFileChangeEventArgs e)
+    {
+        selectedImage = e.File;
+    }
+    private async Task HandleFileChange1(InputFileChangeEventArgs e)
+    {
+        selectedImage1 = e.File;
+    }
+    private async Task HandleFileChange2(InputFileChangeEventArgs e)
+    {
+        selectedImage2 = e.File;
+    }
+    private async Task HandleFileChange3(InputFileChangeEventArgs e)
+    {
+        selectedImage3 = e.File;
+    }
+    //Изображение
+
+    private async Task Create()
+    {
+        if (product == null || product.Description == null || product.Name == null)
+        {
+            msg = "Данные не введены!";
+        }
+        else
+        {
+            if (selectedImage != null && selectedImage1 != null && selectedImage2 != null && selectedImage3 != null)
+            {
+                using (var memoryStream = new MemoryStream())
+                {
+                    await selectedImage.OpenReadStream().CopyToAsync(memoryStream);
+                    product.Cover = memoryStream.ToArray();
+
+                    memoryStream.Seek(0, SeekOrigin.Begin);
+
+                    await selectedImage1.OpenReadStream().CopyToAsync(memoryStream);
+                    product.Img1 = memoryStream.ToArray();
+
+                    memoryStream.Seek(0, SeekOrigin.Begin);
+
+                    await selectedImage2.OpenReadStream().CopyToAsync(memoryStream);
+                    product.Img2 = memoryStream.ToArray();
+
+                    memoryStream.Seek(0, SeekOrigin.Begin);
+
+                    await selectedImage3.OpenReadStream().CopyToAsync(memoryStream);
+                    product.Img3 = memoryStream.ToArray();
+                }
+
+                using HttpResponseMessage TestResponse = await client.PostAsJsonAsync("https://localhost:5001/api/Product/Create", product);
+                TestResponse.EnsureSuccessStatusCode();
+
+                response = await TestResponse.Content.ReadFromJsonAsync<Response>();
+
+                if (response.IsSuccess)
+                {
+                    msg = "Продукт успешно создан!";
+                    navigation.NavigateTo("AdminProducts");
+                }
+                else
+                {
+                    msg = $"Ошибка! Продукт не создан!\n{response.ErrorInfo}";
+                }
+            }
+            else
+            {
+                msg = "Не все изображения были выбраны!";
+            }
+        }
+    }
+    private void Back()
+    {
+        navigation.NavigateTo("adminProducts");
+    }
+}
